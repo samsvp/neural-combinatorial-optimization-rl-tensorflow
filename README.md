@@ -1,6 +1,6 @@
 # Neural Combinatorial Optimization with RL
 
-TensorFlow implementation and extension of [Neural Combinatorial Optimization with Reinforcement Learning](http://arxiv.org/abs/1611.09940) for the Traveling Salesman Problem (TSP) and the TSP with Time Windows (TSP-TW)
+TensorFlow implementation of <br/> [Neural Combinatorial Optimization with Reinforcement Learning](http://arxiv.org/abs/1611.09940) for the Traveling Salesman Problem (TSP) <br/> [Learning Heuristics for the TSP by Policy Gradient](https://link.springer.com/chapter/10.1007%2F978-3-319-93031-2_12), Deudon M., Cournut P., Lacoste A., Adulyasak Y. and Rousseau L.M for the TSP with Time Windows (TSP-TW)
 
 ![model](./Img/Pointer_Net.png)
 
