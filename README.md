@@ -1,10 +1,10 @@
 # Neural Combinatorial Optimization with RL
 
 TensorFlow implementation of: <br/>
-[Learning Heuristics for the TSP by Policy Gradient](https://link.springer.com/chapter/10.1007%2F978-3-319-93031-2_12), Deudon M., Cournut P., Lacoste A., Adulyasak Y. and Rousseau L.M. <br/>
-for the Traveling Salesman Problem (TSP) (final release [here](https://github.com/MichelDeudon/encode-attend-navigate)) <br/> 
-and [Neural Combinatorial Optimization with Reinforcement Learning](http://arxiv.org/abs/1611.09940), Bello I., Pham H., Le Q. V., Norouzi M., Bengio S. <br/>
-for the TSP with Time Windows (TSP-TW).
+[Neural Combinatorial Optimization with Reinforcement Learning](http://arxiv.org/abs/1611.09940), Bello I., Pham H., Le Q. V., Norouzi M., Bengio S. <br/>
+for the TSP with Time Windows (TSP-TW). <br/> 
+and [Learning Heuristics for the TSP by Policy Gradient](https://link.springer.com/chapter/10.1007%2F978-3-319-93031-2_12), Deudon M., Cournut P., Lacoste A., Adulyasak Y. and Rousseau L.M. <br/>
+for the Traveling Salesman Problem (TSP) (final release [here](https://github.com/MichelDeudon/encode-attend-navigate))
 
 ![model](./Img/Pointer_Net.png)
 
