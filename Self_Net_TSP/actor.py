@@ -9,6 +9,8 @@ from decoder import Pointer_decoder
 from critic import Critic
 from config import get_config, print_config
 
+tf.compat.v1.disable_eager_execution()
+tf.compat.v1.disable_v2_behavior() 
 
 
 # Tensor summaries for TensorBoard visualization
@@ -53,23 +55,23 @@ class Actor(object):
         self.lr2_decay_step= config.lr1_decay_step # learning rate decay step
 
         # Tensor block holding the input sequences [Batch Size, Sequence Length, Features]
-        self.input_ = tf.placeholder(tf.float32, [self.batch_size, self.max_length, self.input_dimension], name="input_coordinates")
+        self.input_ = tf.compat.v1.placeholder(tf.float32, [self.batch_size, self.max_length, self.input_dimension], name="input_coordinates")
 
         self.build_permutation()
         self.build_critic()
         self.build_reward()
         self.build_optim()
-        self.merged = tf.summary.merge_all()
+        self.merged = tf.compat.v1.summary.merge_all()
 
 
     def build_permutation(self):
 
-        with tf.variable_scope("encoder"):
+        with tf.compat.v1.variable_scope("encoder"):
 
             Encoder = Attentive_encoder(self.config)
             encoder_output = Encoder.encode(self.input_)
 
-        with tf.variable_scope('decoder'):
+        with tf.compat.v1.variable_scope('decoder'):
             # Ptr-net returns permutations (self.positions), with their log-probability for backprop
             self.ptr = Pointer_decoder(encoder_output, self.config)
             self.positions, self.log_softmax = self.ptr.loop_decode()
@@ -78,7 +80,7 @@ class Actor(object):
 
     def build_critic(self):
 
-        with tf.variable_scope("critic"):
+        with tf.compat.v1.variable_scope("critic"):
             # Critic predicts reward (parametric baseline for REINFORCE)
             self.critic = Critic(self.config)
             self.critic.predict_rewards(self.input_)
@@ -87,7 +89,7 @@ class Actor(object):
 
     def build_reward(self):
 
-        with tf.name_scope('permutations'):
+        with tf.compat.v1.name_scope('permutations'):
 
             # Reorder input % tour
             self.ordered_input_ = []
@@ -101,7 +103,7 @@ class Actor(object):
             ordered_y_ = self.ordered_input_[1] # [seq length +1, batch_size]
             delta_y2 = tf.transpose(tf.square(ordered_y_[1:]-ordered_y_[:-1]),[1,0]) # [batch_size, seq length]        delta_y**2
 
-        with tf.name_scope('environment'):
+        with tf.compat.v1.name_scope('environment'):
 
             # Get tour length (euclidean distance)
             inter_city_distances = tf.sqrt(delta_x2+delta_y2) # sqrt(delta_x**2 + delta_y**2) this is the euclidean distance between each city: depot --> ... ---> depot      [batch_size, seq length]
@@ -115,20 +117,20 @@ class Actor(object):
 
     def build_optim(self):
         # Update moving_mean and moving_variance for batch normalization layers
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        update_ops = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
 
-            with tf.name_scope('baseline'):
+            with tf.compat.v1.name_scope('baseline'):
                 # Update baseline
                 reward_mean, reward_var = tf.nn.moments(self.reward,axes=[0])
-                self.base_op = tf.assign(self.avg_baseline, self.alpha*self.avg_baseline+(1.0-self.alpha)*reward_mean)
+                self.base_op = tf.compat.v1.assign(self.avg_baseline, self.alpha*self.avg_baseline+(1.0-self.alpha)*reward_mean)
                 tf.summary.scalar('average baseline',self.avg_baseline)
 
-            with tf.name_scope('reinforce'):
+            with tf.compat.v1.name_scope('reinforce'):
                 # Actor learning rate
-                self.lr1 = tf.train.exponential_decay(self.lr1_start, self.global_step, self.lr1_decay_step,self.lr1_decay_rate, staircase=False, name="learning_rate1")
+                self.lr1 = tf.compat.v1.train.exponential_decay(self.lr1_start, self.global_step, self.lr1_decay_step,self.lr1_decay_rate, staircase=False, name="learning_rate1")
                 # Optimizer
-                self.opt1 = tf.train.AdamOptimizer(learning_rate=self.lr1,beta1=0.9,beta2=0.99, epsilon=0.0000001)
+                self.opt1 = tf.compat.v1.train.AdamOptimizer(learning_rate=self.lr1,beta1=0.9,beta2=0.99, epsilon=0.0000001)
                 # Discounted reward
                 self.reward_baseline = tf.stop_gradient(self.reward - self.avg_baseline - self.critic.predictions) # [Batch size, 1] 
                 variable_summaries('reward_baseline',self.reward_baseline, with_max_min = True)
@@ -142,13 +144,13 @@ class Actor(object):
 
             with tf.name_scope('state_value'):
                 # Critic learning rate
-                self.lr2 = tf.train.exponential_decay(self.lr2_start, self.global_step2, self.lr2_decay_step,self.lr2_decay_rate, staircase=False, name="learning_rate1")
+                self.lr2 = tf.compat.v1.train.exponential_decay(self.lr2_start, self.global_step2, self.lr2_decay_step,self.lr2_decay_rate, staircase=False, name="learning_rate1")
                 # Optimizer
-                self.opt2 = tf.train.AdamOptimizer(learning_rate=self.lr2,beta1=0.9,beta2=0.99, epsilon=0.0000001)
+                self.opt2 = tf.compat.v1.train.AdamOptimizer(learning_rate=self.lr2,beta1=0.9,beta2=0.99, epsilon=0.0000001)
                 # Loss
                 weights_ = 1.0 #weights_ = tf.exp(self.log_softmax-tf.reduce_max(self.log_softmax)) # probs / max_prob
-                self.loss2 = tf.losses.mean_squared_error(self.reward - self.avg_baseline, self.critic.predictions, weights = weights_)
-                tf.summary.scalar('loss2', self.loss1)
+                self.loss2 = tf.compat.v1.losses.mean_squared_error(self.reward - self.avg_baseline, self.critic.predictions, weights = weights_)
+                tf.compat.v1.summary.scalar('loss2', self.loss1)
                 # Minimize step
                 gvs2 = self.opt2.compute_gradients(self.loss2)
                 capped_gvs2 = [(tf.clip_by_norm(grad, 1.), var) for grad, var in gvs2 if grad is not None] # L2 clip
