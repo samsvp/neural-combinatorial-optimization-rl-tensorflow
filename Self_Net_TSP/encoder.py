@@ -8,14 +8,15 @@ https://www.github.com/kyubyong/transformer
 
 from __future__ import print_function
 import tensorflow as tf
-from tensorflow.contrib.rnn import LSTMCell, GRUCell, MultiRNNCell, DropoutWrapper
+from tensorflow.compat.v1.nn.rnn_cell import LSTMCell, GRUCell, DropoutWrapper, MultiRNNCell
 import numpy as np
 from tqdm import tqdm
 
 from dataset import DataGenerator
 from config import get_config, print_config
 
-
+tf.compat.v1.disable_eager_execution()
+tf.compat.v1.disable_v2_behavior() 
 
 # Apply multihead attention to a 3d tensor with shape [batch_size, seq_length, n_hidden].
 # Attention size = n_hidden should be a multiple of num_head
@@ -23,12 +24,12 @@ from config import get_config, print_config
 
 def multihead_attention(inputs, num_units=None, num_heads=16, dropout_rate=0.1, is_training=True):
 
-    with tf.variable_scope("multihead_attention", reuse=None):
+    with tf.compat.v1.variable_scope("multihead_attention", reuse=None):
         
         # Linear projections
-        Q = tf.layers.dense(inputs, num_units, activation=tf.nn.relu) # [batch_size, seq_length, n_hidden]
-        K = tf.layers.dense(inputs, num_units, activation=tf.nn.relu) # [batch_size, seq_length, n_hidden]
-        V = tf.layers.dense(inputs, num_units, activation=tf.nn.relu) # [batch_size, seq_length, n_hidden]
+        Q = tf.compat.v1.layers.dense(inputs, num_units, activation=tf.nn.relu) # [batch_size, seq_length, n_hidden]
+        K = tf.compat.v1.layers.dense(inputs, num_units, activation=tf.nn.relu) # [batch_size, seq_length, n_hidden]
+        V = tf.compat.v1.layers.dense(inputs, num_units, activation=tf.nn.relu) # [batch_size, seq_length, n_hidden]
         
         # Split and concat
         Q_ = tf.concat(tf.split(Q, num_heads, axis=2), axis=0) # [batch_size, seq_length, n_hidden/num_heads]
@@ -45,7 +46,7 @@ def multihead_attention(inputs, num_units=None, num_heads=16, dropout_rate=0.1, 
         outputs = tf.nn.softmax(outputs) # num_heads*[batch_size, seq_length, seq_length]
           
         # Dropouts
-        outputs = tf.layers.dropout(outputs, rate=dropout_rate, training=tf.convert_to_tensor(is_training))
+        outputs = tf.compat.v1.layers.dropout(outputs, rate=dropout_rate, training=tf.convert_to_tensor(is_training))
                
         # Weighted sum
         outputs = tf.matmul(outputs, V_) # num_heads*[batch_size, seq_length, n_hidden/num_heads]
@@ -57,7 +58,7 @@ def multihead_attention(inputs, num_units=None, num_heads=16, dropout_rate=0.1, 
         outputs += inputs # [batch_size, seq_length, n_hidden]
               
         # Normalize
-        outputs = tf.layers.batch_normalization(outputs, axis=2, training=is_training, name='ln', reuse=None)  # [batch_size, seq_length, n_hidden]
+        outputs = tf.compat.v1.layers.batch_normalization(outputs, axis=2, training=is_training, name='ln', reuse=None)  # [batch_size, seq_length, n_hidden]
  
     return outputs
 
@@ -67,20 +68,20 @@ def multihead_attention(inputs, num_units=None, num_heads=16, dropout_rate=0.1, 
 
 def feedforward(inputs, num_units=[2048, 512], is_training=True):
 
-    with tf.variable_scope("ffn", reuse=None):
+    with tf.compat.v1.variable_scope("ffn", reuse=None):
         # Inner layer
         params = {"inputs": inputs, "filters": num_units[0], "kernel_size": 1, "activation": tf.nn.relu, "use_bias": True}
-        outputs = tf.layers.conv1d(**params)
+        outputs = tf.compat.v1.layers.conv1d(**params)
         
         # Readout layer
         params = {"inputs": outputs, "filters": num_units[1], "kernel_size": 1, "activation": None, "use_bias": True}
-        outputs = tf.layers.conv1d(**params)
+        outputs = tf.compat.v1.layers.conv1d(**params)
         
         # Residual connection
         outputs += inputs
         
         # Normalize
-        outputs = tf.layers.batch_normalization(outputs, axis=2, training=is_training, name='ln', reuse=None)  # [batch_size, seq_length, n_hidden]
+        outputs = tf.compat.v1.layers.batch_normalization(outputs, axis=2, training=is_training, name='ln', reuse=None)  # [batch_size, seq_length, n_hidden]
     
     return outputs
 
@@ -96,8 +97,8 @@ class Attentive_encoder(object):
         self.input_embed = config.hidden_dim # dimension of embedding space (actor)
         self.num_heads = config.num_heads
         self.num_stacks = config.num_stacks
-
-        self.initializer = tf.contrib.layers.xavier_initializer() # variables initializer
+        # GlorotUniform == xavier_initializer
+        self.initializer = tf.initializers.GlorotUniform() # variables initializer
 
         self.is_training = not config.inference_mode
 
@@ -110,17 +111,17 @@ class Attentive_encoder(object):
         # Tensor blocks holding the input sequences [Batch Size, Sequence Length, Features]
         #self.input_ = tf.placeholder(tf.float32, [self.batch_size, self.max_length, self.input_dimension], name="input_raw")
 
-        with tf.variable_scope("embedding"):
+        with tf.compat.v1.variable_scope("embedding"):
           # Embed input sequence
-          W_embed =tf.get_variable("weights",[1,self.input_dimension, self.input_embed], initializer=self.initializer)
+          W_embed = tf.compat.v1.get_variable("weights",[1,self.input_dimension, self.input_embed], initializer=self.initializer)
           self.embedded_input = tf.nn.conv1d(inputs, W_embed, 1, "VALID", name="embedded_input")
           # Batch Normalization
-          self.enc = tf.layers.batch_normalization(self.embedded_input, axis=2, training=self.is_training, name='layer_norm', reuse=None)
+          self.enc = tf.compat.v1.layers.batch_normalization(self.embedded_input, axis=2, training=self.is_training, name='layer_norm', reuse=None)
         
-        with tf.variable_scope("stack"):
+        with tf.compat.v1.variable_scope("stack"):
           # Blocks
           for i in range(self.num_stacks): # num blocks
-              with tf.variable_scope("block_{}".format(i)):
+              with tf.compat.v1.variable_scope("block_{}".format(i)):
                   ### Multihead Attention
                   self.enc = multihead_attention(self.enc, num_units=self.input_embed, num_heads=self.num_heads, dropout_rate=0.1, is_training=self.is_training)
                   
