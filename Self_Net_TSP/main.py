@@ -33,13 +33,13 @@ def main():
     actor = Actor(config)
 
     # Saver to save & restore all the variables.
-    variables_to_save = [v for v in tf.global_variables() if 'Adam' not in v.name]
-    saver = tf.train.Saver(var_list=variables_to_save, keep_checkpoint_every_n_hours=1.0)  
+    variables_to_save = [v for v in tf.compat.v1.global_variables() if 'Adam' not in v.name]
+    saver = tf.compat.v1.train.Saver(var_list=variables_to_save, keep_checkpoint_every_n_hours=1.0)  
 
     print("Starting session...")
-    with tf.Session() as sess:
+    with tf.compat.v1.Session() as sess:
         # Run initialize op
-        sess.run(tf.global_variables_initializer())
+        sess.run(tf.compat.v1.global_variables_initializer())
 
         # Restore variables from disk.
         if config.restore_model==True:
@@ -54,7 +54,7 @@ def main():
         if not config.inference_mode:
 
             # Summary writer
-            writer = tf.summary.FileWriter(config.log_dir, sess.graph)
+            writer = tf.compat.v1.summary.FileWriter(config.log_dir, sess.graph)
 
             print("Starting training...")
             for i in tqdm(range(config.nb_epoch)):
