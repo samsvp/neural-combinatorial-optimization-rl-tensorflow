@@ -1,7 +1,10 @@
 import tensorflow as tf
-from tensorflow.contrib.rnn import LSTMCell, GRUCell, MultiRNNCell, DropoutWrapper
-distr = tf.contrib.distributions
+from tensorflow.compat.v1.nn.rnn_cell import LSTMCell, GRUCell, MultiRNNCell, DropoutWrapper
+import tensorflow_probability as tfp
+distr = tfp.distributions
 
+tf.compat.v1.disable_eager_execution()
+tf.compat.v1.disable_v2_behavior() 
 
 # RNN decoder for pointer network
 class Pointer_decoder(object):
@@ -31,30 +34,31 @@ class Pointer_decoder(object):
         ##########################################
 
         # Variables initializer
-        initializer = tf.contrib.layers.xavier_initializer() 
+        # GlorotUniform == xavier_initialer
+        initializer = tf.initializers.GlorotUniform() 
 
         # Decoder LSTM cell        
         self.cell = LSTMCell(n_hidden, initializer=initializer)
 
         # Decoder initial input is 'GO', a variable tensor
-        first_input = tf.get_variable("GO",[1,n_hidden], initializer=initializer)
+        first_input =tf.compat.v1.get_variable("GO",[1,n_hidden], initializer=initializer)
         self.decoder_first_input = tf.tile(first_input, [batch_size,1])
 
         # Decoder initial state (tuple) is trainable
-        first_state = tf.get_variable("GO_state1",[1,n_hidden], initializer=initializer)
+        first_state =tf.compat.v1.get_variable("GO_state1",[1,n_hidden], initializer=initializer)
         self.decoder_initial_state = tf.tile(first_state, [batch_size,1]), tf.reduce_mean(self.encoder_output,1)
 
         # Attending mechanism
-        with tf.variable_scope("glimpse") as glimpse:
-            self.W_ref_g =tf.get_variable("W_ref_g",[1,n_hidden,n_hidden],initializer=initializer)
-            self.W_q_g =tf.get_variable("W_q_g",[n_hidden,n_hidden],initializer=initializer)
-            self.v_g =tf.get_variable("v_g",[n_hidden],initializer=initializer)
+        with tf.compat.v1.variable_scope("glimpse") as glimpse:
+            self.W_ref_g =tf.compat.v1.get_variable("W_ref_g",[1,n_hidden,n_hidden],initializer=initializer)
+            self.W_q_g =tf.compat.v1.get_variable("W_q_g",[n_hidden,n_hidden],initializer=initializer)
+            self.v_g =tf.compat.v1.get_variable("v_g",[n_hidden],initializer=initializer)
 
         # Pointing mechanism
-        with tf.variable_scope("pointer") as pointer:
-            self.W_ref =tf.get_variable("W_ref",[1,n_hidden,n_hidden],initializer=initializer)
-            self.W_q =tf.get_variable("W_q",[n_hidden,n_hidden],initializer=initializer)
-            self.v =tf.get_variable("v",[n_hidden],initializer=initializer)
+        with tf.compat.v1.variable_scope("pointer") as pointer:
+            self.W_ref =tf.compat.v1.get_variable("W_ref",[1,n_hidden,n_hidden],initializer=initializer)
+            self.W_q =tf.compat.v1.get_variable("W_q",[n_hidden,n_hidden],initializer=initializer)
+            self.v =tf.compat.v1.get_variable("v",[n_hidden],initializer=initializer)
 
         ######################################
         ########## Decoder's output ##########
@@ -111,9 +115,9 @@ class Pointer_decoder(object):
 
     # One pass of the decode mechanism
     def decode(self,prev_state,prev_input,timestep):
-        with tf.variable_scope("loop"):
+        with tf.compat.v1.variable_scope("loop"):
             if timestep > 0:
-                tf.get_variable_scope().reuse_variables()
+               tf.compat.v1.get_variable_scope().reuse_variables()
 
             # Run the cell on a combination of the previous input and state
             output, state = self.cell(prev_input,prev_state)
